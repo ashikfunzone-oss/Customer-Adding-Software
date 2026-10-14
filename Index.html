@@ -247,7 +247,7 @@
 
               {(!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.trim() === "") && (
                 <div className="mt-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-xs text-center">
-                  ⚠️ <strong>Google Sheet API URL Missing:</strong> Open <code>index.html</code> and paste your Apps Script URL into <code>GOOGLE_SHEET_API_URL</code> around line 35.
+                  ⚠️ <strong>Google Sheet API URL Missing:</strong> Open <code>index.html</code> and paste your Apps Script URL into <code>GOOGLE_SHEET_API_URL</code> at line 35.
                 </div>
               )}
             </div>
@@ -449,4 +449,75 @@
             )}
 
             {activeTab === 'search' && (
-              <div classNam
+              <div className="s            {activeTab === 'admin_all' && currentUser.role === 'admin' && (
+              <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 space-y-4">
+                <div className="flex flex-wrap justify-between items-center gap-4">
+                  <h2 className="text-xl font-bold">Manage All Customer Records</h2>
+
+                  <div className="flex gap-2">
+                    <select
+                      value={adminUserFilter}
+                      onChange={(e) => setAdminUserFilter(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-2 text-slate-200"
+                    >
+                      <option value="all">All Members</option>
+                      {USERS.filter(u => u.role === 'member').map(m => (
+                        <option key={m.id} value={m.name}>{m.name}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={adminSourceFilter}
+                      onChange={(e) => setAdminSourceFilter(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-2 text-slate-200"
+                    >
+                      <option value="all">All Sources</option>
+                      {LEAD_SOURCES.map(src => (
+                        <option key={src} value={src}>{src}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-300">
+                    <thead className="bg-slate-900 text-xs uppercase text-slate-400">
+                      <tr>
+                        <th className="p-3">Name</th>
+                        <th className="p-3">Phone</th>
+                        <th className="p-3">Age</th>
+                        <th className="p-3">Profession</th>
+                        <th className="p-3">Source</th>
+                        <th className="p-3">Added By</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-700">
+                      {customers
+                        .filter(c => adminUserFilter === 'all' || c.AddedBy === adminUserFilter)
+                        .filter(c => adminSourceFilter === 'all' || c.Source === adminSourceFilter)
+                        .map((item, idx) => (
+                          <tr key={idx} className="hover:bg-slate-700/40">
+                            <td className="p-3 font-medium text-white">{item.Name}</td>
+                            <td className="p-3">{item.Phone}</td>
+                            <td className="p-3">{item.Age}</td>
+                            <td className="p-3">{item.Profession}</td>
+                            <td className="p-3"><span className="bg-slate-700 px-2 py-1 rounded text-xs">{item.Source}</span></td>
+                            <td className="p-3 text-purple-300 font-medium">{item.AddedBy}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
