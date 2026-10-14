@@ -247,15 +247,14 @@
 
               {(!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.trim() === "") && (
                 <div className="mt-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-xs text-center">
-                  ⚠️ <strong>Google Sheet API URL Missing:</strong> Open <code>index.html</code> and paste your Apps Script URL into <code>GOOGLE_SHEET_API_URL</code> at line 35.
+                  ⚠️ <strong>Google Sheet API URL Missing:</strong> Open <code>index.html</code> and paste your Apps Script URL into <code>GOOGLE_SHEET_API_URL</code> around line 35.
                 </div>
               )}
             </div>
           </div>
         );
       }
-
-      const myData = customers.filter(c => c.AddedBy === currentUser.name);
+          const myData = customers.filter(c => c.AddedBy === currentUser.name);
 
       return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
@@ -449,7 +448,69 @@
             )}
 
             {activeTab === 'search' && (
-              <div className="s            {activeTab === 'admin_all' && currentUser.role === 'admin' && (
+              <div className="space-y-4">
+                <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700">
+                  <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+                    <i data-lucide="search" className="text-blue-400 w-5 h-5"></i> Duplication Search Engine
+                  </h2>
+                  <p className="text-slate-400 text-sm mb-4">
+                    Type a phone number or name to search across the entire database before adding a lead.
+                  </p>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search by phone number or name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {searchQuery.trim() !== '' && (
+                  <div className="space-y-3">
+                    <div className="text-sm text-slate-400">
+                      Search Results for "<span className="text-white">{searchQuery}</span>":
+                    </div>
+
+                    {duplicateMatches.length === 0 ? (
+                      <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6 text-center text-emerald-300">
+                        <i data-lucide="check-circle" className="mx-auto mb-2 text-emerald-400 w-8 h-8"></i>
+                        <h3 className="font-bold">No Duplicates Found!</h3>
+                        <p className="text-sm text-emerald-400/80 mt-1">This customer is clear to be added to the system.</p>
+                      </div>
+                    ) : (
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                        <div className="flex items-center gap-2 text-red-400 font-bold mb-3">
+                          <i data-lucide="alert-triangle" className="w-5 h-5"></i>
+                          Found {duplicateMatches.length} Matching Customer(s) in System
+                        </div>
+
+                        <div className="space-y-2">
+                          {duplicateMatches.map((item, idx) => (
+                            <div key={idx} className="bg-slate-900 p-4 rounded-lg border border-slate-700 flex flex-wrap justify-between items-center gap-2">
+                              <div>
+                                <div className="font-bold text-white">{item.Name}</div>
+                                <div className="text-sm text-slate-400 flex items-center gap-3 mt-1">
+                                  <span>Phone: {item.Phone}</span>
+                                  <span>Source: {item.Source}</span>
+                                  <span>Profession: {item.Profession}</span>
+                                </div>
+                              </div>
+                              <div className="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-purple-300">
+                                Added by: <strong>{item.AddedBy}</strong>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+{activeTab === 'admin_all' && currentUser.role === 'admin' && (
               <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 space-y-4">
                 <div className="flex flex-wrap justify-between items-center gap-4">
                   <h2 className="text-xl font-bold">Manage All Customer Records</h2>
@@ -521,3 +582,4 @@
   </script>
 </body>
 </html>
+                                      
