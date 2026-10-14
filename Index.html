@@ -1,501 +1,452 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Users,
-  UserPlus,
-  Shield,
-  User,
-  Search,
-  CheckCircle,
-  AlertTriangle,
-  BarChart3,
-  LogOut,
-  Calendar,
-  Phone,
-  Tag,
-  Briefcase,
-  FileSpreadsheet,
-  RefreshCw,
-  Clock,
-  TrendingUp,
-  Filter,
-  ExternalLink
-} from 'lucide-react';
-
-// =========================================================================
-// 🔗 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
-// =========================================================================
-const GOOGLE_SHEET_API_URL = "";
-
-// Demo User Accounts
-const USERS = [
-  { id: 'admin', name: 'Admin', role: 'admin' },
-  { id: 'member_rahim', name: 'Rahim (Member)', role: 'member' },
-  { id: 'member_karim', name: 'Karim (Member)', role: 'member' },
-  { id: 'member_sumon', name: 'Sumon (Member)', role: 'member' },
-];
-
-const LEAD_SOURCES = [
-  'Facebook',
-  'Instagram',
-  'TikTok',
-  'WhatsApp',
-  'Direct Call',
-  'Google Search',
-  'Others'
-];
-
-export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('add'); // 'add', 'search', 'my_data', 'admin_analytics', 'admin_all'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeadSync - Customer Management Portal</title>
   
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
   
-  // New Customer Form State
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    age: '',
-    profession: '',
-    source: 'Facebook',
-    notes: ''
-  });
-  const [formAlert, setFormAlert] = useState(null);
+  <!-- React & React DOM CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <div id="root"></div>
 
-  // Admin Filter States
-  const [adminUserFilter, setAdminUserFilter] = useState('all');
-  const [adminSourceFilter, setAdminSourceFilter] = useState('all');
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
 
-  // Fetch live data from Google Sheets API
-  const fetchCustomers = async () => {
-    if (!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.trim() === "") {
-      return;
-    }
-    setLoading(true);
-    try {
-      const response = await fetch(GOOGLE_SHEET_API_URL);
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        setCustomers(data);
+    // =========================================================================
+    // 🔗 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
+    // =========================================================================
+    const GOOGLE_SHEET_API_URL = "";
+
+    const USERS = [
+      { id: 'admin', name: 'Admin', role: 'admin' },
+      { id: 'member_rahim', name: 'Rahim (Member)', role: 'member' },
+      { id: 'member_karim', name: 'Karim (Member)', role: 'member' },
+      { id: 'member_sumon', name: 'Sumon (Member)', role: 'member' },
+    ];
+
+    const LEAD_SOURCES = [
+      'Facebook',
+      'Instagram',
+      'TikTok',
+      'WhatsApp',
+      'Direct Call',
+      'Google Search',
+      'Others'
+    ];
+
+    function App() {
+      const [currentUser, setCurrentUser] = useState(null);
+      const [customers, setCustomers] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [activeTab, setActiveTab] = useState('add');
+      
+      const [searchQuery, setSearchQuery] = useState('');
+      
+      const [formData, setFormData] = useState({
+        name: '',
+        phone: '',
+        age: '',
+        profession: '',
+        source: 'Facebook'
+      });
+      const [formAlert, setFormAlert] = useState(null);
+
+      const [adminUserFilter, setAdminUserFilter] = useState('all');
+      const [adminSourceFilter, setAdminSourceFilter] = useState('all');
+
+      useEffect(() => {
+        if (window.lucide) {
+          window.lucide.createIcons();
+        }
+      }, [currentUser, activeTab, customers, searchQuery, formAlert]);
+
+      const fetchCustomers = async () => {
+        if (!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.trim() === "") return;
+        setLoading(true);
+        try {
+          const response = await fetch(GOOGLE_SHEET_API_URL);
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            setCustomers(data);
+          }
+        } catch (error) {
+          console.error("Failed to load customer data from Google Sheets:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        if (currentUser) {
+          fetchCustomers();
+        }
+      }, [currentUser]);
+
+      const duplicateMatches = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return [];
+        return customers.filter(c => 
+          (c.Phone && String(c.Phone).toLowerCase().includes(query)) ||
+          (c.Name && String(c.Name).toLowerCase().includes(query))
+        );
+      }, [searchQuery, customers]);
+
+      const isFormPhoneDuplicate = useMemo(() => {
+        const cleanPhone = formData.phone.trim();
+        if (!cleanPhone || cleanPhone.length < 5) return null;
+        return customers.find(c => String(c.Phone).trim() === cleanPhone);
+      }, [formData.phone, customers]);
+
+      const handleLogin = (user) => {
+        setCurrentUser(user);
+        if (user.role === 'admin') {
+          setActiveTab('admin_analytics');
+        } else {
+          setActiveTab('add');
+        }
+      };
+
+      const handleLogout = () => {
+        setCurrentUser(null);
+        setCustomers([]);
+      };
+
+      const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.name || !formData.phone) {
+          setFormAlert({ type: 'error', message: 'Name and Phone number are required fields.' });
+          return;
+        }
+
+        if (isFormPhoneDuplicate) {
+          setFormAlert({ 
+            type: 'error', 
+            message: `Duplicate phone number! Customer already added by ${isFormPhoneDuplicate.AddedBy || 'another team member'}.` 
+          });
+          return;
+        }
+
+        if (!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.trim() === "") {
+          setFormAlert({ 
+            type: 'error', 
+            message: 'Google Sheet URL is not configured. Please paste your Apps Script URL into GOOGLE_SHEET_API_URL inside index.html.' 
+          });
+          return;
+        }
+
+        setLoading(true);
+        setFormAlert(null);
+
+        const newRecord = {
+          id: Date.now().toString(),
+          name: formData.name.trim(),
+          phone: formData.phone.trim(),
+          age: formData.age || 'N/A',
+          profession: formData.profession || 'N/A',
+          source: formData.source,
+          addedBy: currentUser.name,
+          createdAt: new Date().toISOString()
+        };
+
+        try {
+          await fetch(GOOGLE_SHEET_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(newRecord)
+          });
+
+          setFormAlert({ type: 'success', message: 'Customer details saved successfully to Google Sheet!' });
+          setFormData({ name: '', phone: '', age: '', profession: '', source: 'Facebook' });
+          fetchCustomers();
+        } catch (err) {
+          console.error(err);
+          setFormAlert({ type: 'error', message: 'Failed to submit data. Please check your network connection or Apps Script setup.' });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const getAnalytics = (userFilter = 'all') => {
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(now.getDate() - 7);
+
+        const filtered = userFilter === 'all' 
+          ? customers 
+          : customers.filter(c => c.AddedBy === userFilter);
+
+        const todayCount = filtered.filter(c => {
+          if (!c.ID) return false;
+          const d = new Date(Number(c.ID));
+          return d.toISOString().split('T')[0] === todayStr;
+        }).length;
+
+        const weeklyCount = filtered.filter(c => {
+          if (!c.ID) return false;
+          const d = new Date(Number(c.ID));
+          return d >= oneWeekAgo;
+        }).length;
+
+        return {
+          total: filtered.length,
+          today: todayCount,
+          weekly: weeklyCount
+        };
+      };
+
+      if (!currentUser) {
+        return (
+          <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-slate-800 rounded-2xl p-8 border border-slate-700 shadow-2xl">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center p-3 bg-blue-600/20 text-blue-400 rounded-xl mb-3">
+                  <i data-lucide="users" className="w-9 h-9"></i>
+                </div>
+                <h1 className="text-2xl font-bold">LeadSync Portal</h1>
+                <p className="text-slate-400 text-sm mt-1">Select a role to enter the system</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-1">Admin Access</div>
+                {USERS.filter(u => u.role === 'admin').map(user => (
+                  <button
+                    key={user.id}
+                    onClick={() => handleLogin(user)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-purple-600/10 border border-purple-500/30 text-purple-300 hover:bg-purple-600/20 transition-all font-medium"
+                  >
+                    <span className="flex items-center gap-2"><i data-lucide="shield" className="w-4 h-4"></i> {user.name}</span>
+                    <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">Admin Panel</span>
+                  </button>
+                ))}
+
+                <div className="text-xs uppercase tracking-wider font-semibold text-slate-500 mt-4 mb-1">Member Access</div>
+                {USERS.filter(u => u.role === 'member').map(user => (
+                  <button
+                    key={user.id}
+                    onClick={() => handleLogin(user)}
+                    className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-700/50 border border-slate-600 text-slate-200 hover:bg-slate-700 transition-all font-medium"
+                  >
+                    <span className="flex items-center gap-2"><i data-lucide="user" className="w-4 h-4"></i> {user.name}</span>
+                    <span className="text-xs bg-slate-600 text-slate-300 px-2 py-1 rounded">Member Panel</span>
+                  </button>
+                ))}
+              </div>
+
+              {(!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.trim() === "") && (
+                <div className="mt-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-xs text-center">
+                  ⚠️ <strong>Google Sheet API URL Missing:</strong> Open <code>index.html</code> and paste your Apps Script URL into <code>GOOGLE_SHEET_API_URL</code> around line 35.
+                </div>
+              )}
+            </div>
+          </div>
+        );
       }
-    } catch (error) {
-      console.error("Failed to load customer data from Google Sheets:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchCustomers();
-    }
-  }, [currentUser]);
+      const myData = customers.filter(c => c.AddedBy === currentUser.name);
 
-  // Real-time duplication check helper across all records
-  const duplicateMatches = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return [];
-    return customers.filter(c => 
-      (c.Phone && String(c.Phone).toLowerCase().includes(query)) ||
-      (c.Name && String(c.Name).toLowerCase().includes(query))
-    );
-  }, [searchQuery, customers]);
+      return (
+        <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
+          <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-600 p-2 rounded-lg text-white">
+                  <i data-lucide="users" className="w-5 h-5"></i>
+                </div>
+                <div>
+                  <h1 className="font-bold text-lg leading-tight">LeadSync Portal</h1>
+                  <p className="text-xs text-slate-400">Google Sheets Connected</p>
+                </div>
+              </div>
 
-  // Check form inline phone number duplication before saving
-  const isFormPhoneDuplicate = useMemo(() => {
-    const cleanPhone = formData.phone.trim();
-    if (!cleanPhone || cleanPhone.length < 5) return null;
-    return customers.find(c => String(c.Phone).trim() === cleanPhone);
-  }, [formData.phone, customers]);
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={fetchCustomers}
+                  disabled={loading}
+                  className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-all"
+                  title="Refresh Data"
+                >
+                  <i data-lucide="refresh-cw" className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}></i>
+                </button>
 
-  // Handle Login
-  const handleLogin = (user) => {
-    setCurrentUser(user);
-    if (user.role === 'admin') {
-      setActiveTab('admin_analytics');
-    } else {
-      setActiveTab('add');
-    }
-  };
+                <div className="flex items-center gap-2 bg-slate-700/50 px-3 py-1.5 rounded-lg border border-slate-600">
+                  <i data-lucide={currentUser.role === 'admin' ? "shield" : "user"} className={`w-4 h-4 ${currentUser.role === 'admin' ? "text-purple-400" : "text-blue-400"}`}></i>
+                  <span className="text-sm font-medium">{currentUser.name}</span>
+                </div>
 
-  // Handle Logout
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setCustomers([]);
-  };
-
-  // Handle Submit Customer to Google Sheets
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.phone) {
-      setFormAlert({ type: 'error', message: 'Name and Phone number are required fields.' });
-      return;
-    }
-
-    if (isFormPhoneDuplicate) {
-      setFormAlert({ 
-        type: 'error', 
-        message: `Duplicate phone number! Customer already added by ${isFormPhoneDuplicate.AddedBy || 'another team member'}.` 
-      });
-      return;
-    }
-
-    if (!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.trim() === "") {
-      setFormAlert({ 
-        type: 'error', 
-        message: 'Google Sheet URL is not configured. Please paste your Apps Script URL into GOOGLE_SHEET_API_URL at line 24.' 
-      });
-      return;
-    }
-
-    setLoading(true);
-    setFormAlert(null);
-
-    const newRecord = {
-      id: Date.now().toString(),
-      name: formData.name.trim(),
-      phone: formData.phone.trim(),
-      age: formData.age || 'N/A',
-      profession: formData.profession || 'N/A',
-      source: formData.source,
-      addedBy: currentUser.name,
-      createdAt: new Date().toISOString()
-    };
-
-    try {
-      await fetch(GOOGLE_SHEET_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(newRecord)
-      });
-
-      setFormAlert({ type: 'success', message: 'Customer details saved successfully to Google Sheet!' });
-      setFormData({ name: '', phone: '', age: '', profession: '', source: 'Facebook', notes: '' });
-      fetchCustomers();
-    } catch (err) {
-      console.error(err);
-      setFormAlert({ type: 'error', message: 'Failed to submit data. Please check your network connection or Apps Script setup.' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Date Analytics Calculators
-  const getAnalytics = (userFilter = 'all') => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    
-    // One week ago calculation
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(now.getDate() - 7);
-
-    const filtered = userFilter === 'all' 
-      ? customers 
-      : customers.filter(c => c.AddedBy === userFilter);
-
-    const todayCount = filtered.filter(c => {
-      if (!c.ID) return false;
-      const d = new Date(Number(c.ID));
-      return d.toISOString().split('T')[0] === todayStr;
-    }).length;
-
-    const weeklyCount = filtered.filter(c => {
-      if (!c.ID) return false;
-      const d = new Date(Number(c.ID));
-      return d >= oneWeekAgo;
-    }).length;
-
-    return {
-      total: filtered.length,
-      today: todayCount,
-      weekly: weeklyCount
-    };
-  };
-
-  // If user is not logged in, render Portal Login Interface
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-800 rounded-2xl p-8 border border-slate-700 shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center p-3 bg-blue-600/20 text-blue-400 rounded-xl mb-3">
-              <Users size={36} />
+                <button
+                  onClick={handleLogout}
+                  className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                  title="Log Out"
+                >
+                  <i data-lucide="log-out" className="w-4 h-4"></i>
+                </button>
+              </div>
             </div>
-            <h1 className="text-2xl font-bold">LeadSync System</h1>
-            <p className="text-slate-400 text-sm mt-1">Select a role to enter the portal</p>
-          </div>
+          </header>
 
-          <div className="space-y-3">
-            <div className="text-xs uppercase tracking-wider font-semibold text-slate-500 mb-1">Admin Access</div>
-            {USERS.filter(u => u.role === 'admin').map(user => (
-              <button
-                key={user.id}
-                onClick={() => handleLogin(user)}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-purple-600/10 border border-purple-500/30 text-purple-300 hover:bg-purple-600/20 transition-all font-medium"
-              >
-                <span className="flex items-center gap-2"><Shield size={18} /> {user.name}</span>
-                <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">Admin Panel</span>
-              </button>
-            ))}
+          <div className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+            <div className="flex gap-2 border-b border-slate-700 pb-3 overflow-x-auto">
+              {currentUser.role === 'member' && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('add')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === 'add' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    <i data-lucide="user-plus" className="w-4 h-4"></i> Add Customer
+                  </button>
 
-            <div className="text-xs uppercase tracking-wider font-semibold text-slate-500 mt-4 mb-1">Member Access</div>
-            {USERS.filter(u => u.role === 'member').map(user => (
-              <button
-                key={user.id}
-                onClick={() => handleLogin(user)}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-700/50 border border-slate-600 text-slate-200 hover:bg-slate-700 transition-all font-medium"
-              >
-                <span className="flex items-center gap-2"><User size={18} /> {user.name}</span>
-                <span className="text-xs bg-slate-600 text-slate-300 px-2 py-1 rounded">Member Panel</span>
-              </button>
-            ))}
-          </div>
+                  <button
+                    onClick={() => setActiveTab('search')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === 'search' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    <i data-lucide="search" className="w-4 h-4"></i> Check Duplication
+                  </button>
 
-          {(!GOOGLE_SHEET_API_URL || GOOGLE_SHEET_API_URL.trim() === "") && (
-            <div className="mt-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 text-xs text-center">
-              ⚠️ <strong>Google Sheet API URL Missing:</strong> Open <code>src/App.jsx</code> and set your URL in <code>GOOGLE_SHEET_API_URL</code> at line 24.
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+                  <button
+                    onClick={() => setActiveTab('my_data')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === 'my_data' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    <i data-lucide="file-spreadsheet" className="w-4 h-4"></i> My Entries ({myData.length})
+                  </button>
+                </>
+              )}
 
-  const myData = customers.filter(c => c.AddedBy === currentUser.name);
+              {currentUser.role === 'admin' && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('admin_analytics')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === 'admin_analytics' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    <i data-lucide="bar-chart-3" className="w-4 h-4"></i> Team Status & Analytics
+                  </button>
 
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
-      {/* Header Bar */}
-      <header className="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg text-white">
-              <Users size={20} />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg leading-tight">LeadSync Portal</h1>
-              <p className="text-xs text-slate-400">Google Sheets Connected</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={fetchCustomers}
-              disabled={loading}
-              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition-all"
-              title="Refresh Data"
-            >
-              <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-            </button>
-
-            <div className="flex items-center gap-2 bg-slate-700/50 px-3 py-1.5 rounded-lg border border-slate-600">
-              {currentUser.role === 'admin' ? <Shield size={16} className="text-purple-400" /> : <User size={16} className="text-blue-400" />}
-              <span className="text-sm font-medium">{currentUser.name}</span>
+                  <button
+                    onClick={() => setActiveTab('admin_all')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === 'admin_all' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    <i data-lucide="users" className="w-4 h-4"></i> Manage All Data ({customers.length})
+                  </button>
+                </>
+              )}
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-              title="Log Out"
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
-      </header>
+            {activeTab === 'add' && currentUser.role === 'member' && (
+              <div className="max-w-2xl mx-auto bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <i data-lucide="user-plus" className="text-blue-400 w-5 h-5"></i> Add New Customer Detail
+                </h2>
 
-      {/* App Body Content */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
-        
-        {/* Navigation Tabs */}
-        <div className="flex gap-2 border-b border-slate-700 pb-3 overflow-x-auto">
-          {currentUser.role === 'member' && (
-            <>
-              <button
-                onClick={() => setActiveTab('add')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'add' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`}
-              >
-                <UserPlus size={16} /> Add Customer
-              </button>
+                {formAlert && (
+                  <div className={`p-4 rounded-xl mb-4 text-sm flex items-start gap-3 ${
+                    formAlert.type === 'error' 
+                      ? 'bg-red-500/10 border border-red-500/30 text-red-300' 
+                      : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                  }`}>
+                    <i data-lucide={formAlert.type === 'error' ? "alert-triangle" : "check-circle"} className="shrink-0 w-5 h-5"></i>
+                    <div>{formAlert.message}</div>
+                  </div>
+                )}
 
-              <button
-                onClick={() => setActiveTab('search')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'search' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`}
-              >
-                <Search size={16} /> Check Duplication
-              </button>
+                <form onSubmit={handleFormSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Phone Number *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 01712345678"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                    {isFormPhoneDuplicate && (
+                      <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                        <i data-lucide="alert-triangle" className="w-3 h-3"></i> Already added by: <strong>{isFormPhoneDuplicate.AddedBy}</strong>
+                      </p>
+                    )}
+                  </div>
 
-              <button
-                onClick={() => setActiveTab('my_data')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'my_data' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`}
-              >
-                <FileSpreadsheet size={16} /> My Entries ({myData.length})
-              </button>
-            </>
-          )}
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Customer Full Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. John Doe"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
+                      required
+                    />
+                  </div>
 
-          {currentUser.role === 'admin' && (
-            <>
-              <button
-                onClick={() => setActiveTab('admin_analytics')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'admin_analytics' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`}
-              >
-                <BarChart3 size={16} /> Team Status & Analytics
-              </button>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Age</label>
+                      <input
+                        type="number"
+                        placeholder="e.g. 28"
+                        value={formData.age}
+                        onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
 
-              <button
-                onClick={() => setActiveTab('admin_all')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'admin_all' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`}
-              >
-                <Users size={16} /> Manage All Data ({customers.length})
-              </button>
-            </>
-          )}
-        </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Profession</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Engineer"
+                        value={formData.profession}
+                        onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
 
-        {/* TAB 1: MEMBER ADD CUSTOMER */}
-        {activeTab === 'add' && currentUser.role === 'member' && (
-          <div className="max-w-2xl mx-auto bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-lg">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <UserPlus className="text-blue-400" /> Add New Customer Detail
-            </h2>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Source Platform</label>
+                    <select
+                      value={formData.source}
+                      onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
+                    >
+                      {LEAD_SOURCES.map(src => (
+                        <option key={src} value={src}>{src}</option>
+                      ))}
+                    </select>
+                  </div>
 
-            {formAlert && (
-              <div className={`p-4 rounded-xl mb-4 text-sm flex items-start gap-3 ${
-                formAlert.type === 'error' 
-                  ? 'bg-red-500/10 border border-red-500/30 text-red-300' 
-                  : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
-              }`}>
-                {formAlert.type === 'error' ? <AlertTriangle className="shrink-0" size={18} /> : <CheckCircle className="shrink-0" size={18} />}
-                <div>{formAlert.message}</div>
+                  <button
+                    type="submit"
+                    disabled={loading || Boolean(isFormPhoneDuplicate)}
+                    className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <i data-lucide={loading ? "refresh-cw" : "user-plus"} className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}></i> Save to Google Sheet
+                  </button>
+                </form>
               </div>
             )}
 
-            <form onSubmit={handleFormSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Phone Number *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 01712345678"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
-                  required
-                />
-                {isFormPhoneDuplicate && (
-                  <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
-                    <AlertTriangle size={12} /> Already added by: <strong>{isFormPhoneDuplicate.AddedBy}</strong>
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Customer Full Name *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. John Doe"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Age</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 28"
-                    value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Profession</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Engineer"
-                    value={formData.profession}
-                    onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Source Platform</label>
-                <select
-                  value={formData.source}
-                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500"
-                >
-                  {LEAD_SOURCES.map(src => (
-                    <option key={src} value={src}>{src}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || Boolean(isFormPhoneDuplicate)}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
-              >
-                {loading ? <RefreshCw className="animate-spin" size={18} /> : <UserPlus size={18} />} Save to Google Sheet
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* TAB 2: SEARCH / DUPLICATION CHECK PANEL */}
-        {activeTab === 'search' && (
-          <div className="space-y-4">
-            <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700">
-              <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <Search className="text-blue-400" /> Duplication Search Engine
-              </h2>
-              <p className="text-slate-400 text-sm mb-4">
-                Type a phone number or name to search across the entire database before adding a lead.
-              </p>
-
-              <div className="relative">
-                <Search className="absolute left-4 top-3.5 text-slate-500" size={18} />
-                <input
-                  type="text"
-                  placeholder="Search by phone number or name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-11 pr-4 py-3 text-slate-100 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            {searchQuery.trim() !== '' && (
-              <div className="space-y-3">
-                <div className="text-sm text-slate-400">
-                  Search Results for "<span className="text-white">{searchQuery}</span>":
-                </div>
-
-                {duplicateMatches.length === 0 ? (
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-6 text-center text-emerald-300">
-                    <CheckCircle className="mx-auto mb-2 text-emerald-400" size={32} />
-                    <h3 className="font-bold">No Duplicates Found!</h3>
-                    <p className="text-sm text-emerald-400/80 mt-1">This customer is clear to be added to the system.</p>
-                  </div>
-                ) : (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
- 
+            {activeTab === 'search' && (
+              <div classNam
